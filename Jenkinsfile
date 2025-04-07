@@ -1,35 +1,41 @@
 pipeline {
-  agent any
-  tools { 
+    agent any
+
+    tools { 
         maven 'maven3'  
     }
 
-	stage('RunSCAAnalysisUsingSnyk') {
+    environment {
+        IMAGE_NAME = 'asg'
+        ECR_REGISTRY = '205930608961.dkr.ecr.us-west-2.amazonaws.com'
+        ECR_CREDENTIALS = 'ecr:us-west-2:aws-credentials'
+    }
+
+    stages {
+        stage('Run SCA Analysis Using Snyk') {
             steps {		
-				withCredentials([string(credentialsId: 'SNYK_TOKEN', variable: 'SNYK_TOKEN')]) {
-					sh 'mvn snyk:test -fn'
-				}
-			}
-    }
-
-	stage('Build') { 
-            steps { 
-               withDockerRegistry([credentialsId: "dockerlogin", url: ""]) {
-                 script{
-                 app =  docker.build("asg")
-                 }
-               }
+                withCredentials([string(credentialsId: 'SNYK_TOKEN', variable: 'SNYK_TOKEN')]) {
+                    sh 'mvn snyk:test -fn'
+                }
             }
-    }
+        }
 
-	stage('Push') {
+        stage('Build Docker Image') { 
+            steps { 
+                script {
+                    dockerImage = docker.build("${IMAGE_NAME}")
+                }
+            }
+        }
+
+        stage('Push to ECR') {
             steps {
-                script{
-                    docker.withRegistry('https://205930608961.dkr.ecr.us-west-2.amazonaws.com', 'ecr:us-west-2:aws-credentials') {
-                    app.push("latest")
+                script {
+                    docker.withRegistry("https://${ECR_REGISTRY}", "${ECR_CREDENTIALS}") {
+                        dockerImage.push("latest")
                     }
                 }
             }
-    	}
-	    
+        }
+    }
 }
