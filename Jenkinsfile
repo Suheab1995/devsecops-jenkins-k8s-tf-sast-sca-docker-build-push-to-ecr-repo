@@ -59,8 +59,9 @@ pipeline {
         echo "Running ZAP scan on: http://${hostname}"
 
         sh """
-        docker run -v ${WORKSPACE}:/zap/wrk -t ghcr.io/zaproxy/zaproxy:stable \
-        zap.sh -cmd -quickurl http://${hostname} -quickprogress -quickout /zap/wrk/zap_report.html
+       docker run -v /var/lib/jenkins/workspace/sonar:/zap/wrk -t owasp/zap2docker-weekly \
+       zap.sh -cmd -quickurl http://a8687c7a196454879acf2963caee4333-238419036.us-west-2.elb.amazonaws.com \
+       -quickprogress -quickout /zap/wrk/zap_report.html
 	"""
       }
 
