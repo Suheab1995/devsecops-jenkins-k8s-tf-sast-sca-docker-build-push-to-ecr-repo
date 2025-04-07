@@ -59,9 +59,9 @@ pipeline {
         echo "Running ZAP scan on: http://${hostname}"
 
         sh """
-        docker run -v ${WORKSPACE}:/zap/wrk -t owasp/zap2docker-stable \
+        docker run -v ${WORKSPACE}:/zap/wrk -t ghcr.io/zaproxy/zaproxy:stable \
         zap.sh -cmd -quickurl http://${hostname} -quickprogress -quickout /zap/wrk/zap_report.html
-        """
+	"""
       }
 
       // Archive the report after scanning
