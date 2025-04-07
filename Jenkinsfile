@@ -52,12 +52,23 @@ pipeline {
 	   }
 	   
 	stage('RunDASTUsingZAP') {
-          steps {
-		    withKubeConfig([credentialsId: 'kubelogin']) {
-				sh('zap.sh -cmd -quickurl http://$(kubectl get services/asgbuggy --namespace=devsecops -o json| jq -r ".status.loadBalancer.ingress[] | .hostname") -quickprogress -quickout ${WORKSPACE}/zap_report.html')
-				archiveArtifacts artifacts: 'zap_report.html'
-		    }
-	     }
-       } 
+  steps {
+    withKubeConfig([credentialsId: 'kubelogin']) {
+      script {
+        def hostname = sh(script: "kubectl get svc asgbuggy --namespace=devsecops -o json | jq -r '.status.loadBalancer.ingress[0].hostname'", returnStdout: true).trim()
+        echo "Running ZAP scan on: http://${hostname}"
+
+        sh """
+        docker run -v ${WORKSPACE}:/zap/wrk -t owasp/zap2docker-stable \
+        zap.sh -cmd -quickurl http://${hostname} -quickprogress -quickout /zap/wrk/zap_report.html
+        """
+      }
+
+      // Archive the report after scanning
+      archiveArtifacts artifacts: 'zap_report.html'
+    }
+  }
+}
+
 }
 }
